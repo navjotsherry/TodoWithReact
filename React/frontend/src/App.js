@@ -17,6 +17,9 @@ class App extends React.Component{
       this.fetchTasks = this.fetchTasks.bind(this)
       this.handleChange = this.handleChange.bind(this)
       this.handleSubmit = this.handleSubmit.bind(this)
+      this.startEdit  = this.startEdit.bind(this)
+      this.taskDelete  = this.taskDelete.bind(this)
+      this.strikeUnstrike  = this.strikeUnstrike.bind(this)
   };
 
   componentWillMount(){
@@ -52,7 +55,17 @@ class App extends React.Component{
     e.preventDefault();
     console.log("Item: ",this.state.activeItem);
 
+
+
     var url = 'http://127.0.0.1:8000/api/task-create/'
+    if(this.state.editing==true){
+      console.log('editing true')
+      url='http://127.0.0.1:8000/api/task-update/'+this.state.activeItem.id;
+      this.setState({
+        editing:false,
+      })
+    }
+    
     fetch(url,{
       method : 'POST',
       headers:{
@@ -75,10 +88,45 @@ class App extends React.Component{
   }
 
 
+  startEdit(task){
+    this.setState({
+      activeItem:task,
+      editing:true,
+    })
+  }
+
+  strikeUnstrike(task){
+    task.completed = !task.completed
+    console.log("Task completed:",task.completed)
+    var url ='http://127.0.0.1:8000/api/task-update/'+task.id;
+    fetch(url,{
+      method : 'POST',
+      headers:{
+        'Content-type':'application/json'
+      },
+      body:JSON.stringify({'completed':task.completed,'title':task.title})
+    }).then(()=>{
+      this.fetchTasks()
+    })
+  }
+
+  taskDelete(task){
+    
+    var url = 'http://127.0.0.1:8000/api/task-delete/'+task.id;
+    fetch(url,{
+      method : 'DELETE',
+      headers : {
+        'Content-type':'application/json',
+      },
+    }).then((response)=>{
+      this.fetchTasks()
+    })
+  }
   
 
   render(){
     var tasks = this.state.todoList
+    var self = this
     return(
       <div className = "container">
 
@@ -87,7 +135,7 @@ class App extends React.Component{
             <form onSubmit={this.handleSubmit} id="form">
               <div className='flex-wrapper'>
                 <div style={{flex:6}}>
-                  <input onChange={this.handleChange} className='form-control' id='title' type="text" name="title" placeholder='Add Task title here..'></input>
+                  <input onChange={this.handleChange} className='form-control' id='title' value={this.state.activeItem.title} type="text" name="title" placeholder='Add Task title here..'></input>
                 </div>
                 <div style={{flex:1}}>
                   <input id="submit" className='bt btn-warning' type="submit" name='Add'></input>
@@ -102,16 +150,19 @@ class App extends React.Component{
               return(
                 <div key={index} className='task-wrapper flex-wrapper'>
                   
-                  <div style={{flex:7}}>
-                  <span>{task.title}</span>
+                  <div onClick={()=>self.strikeUnstrike(task)} style={{flex:7}}>
+                  {task.completed == false ?(
+                    <span>{task.title}</span>
+                  ) : <strike>{task.title}</strike> }
+                  
                   </div>
 
                   <div style={{flex:1}}>
-                  <button className='btn btn-sm btn-outline-info'>Edit</button>
+                  <button onClick={()=> self.startEdit(task)} className='btn btn-sm btn-outline-info'>Edit</button>
                   </div>
 
                   <div style={{flex:1}}>
-                  <button className='btn btn-sm btn-outline-dark delete'>-</button>
+                  <button onClick={()=>self.taskDelete(task)} className='btn btn-sm btn-outline-dark delete'>-</button>
                   </div>
                 </div>
               )})}
